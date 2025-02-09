@@ -1,0 +1,4 @@
+Django==5.1.5
+django-import-export==4.3.4
+shortuuid==1.0.13
+pytest==8.3.4

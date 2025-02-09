@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee List</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="{% url 'emp_list' %}">Back to list</a>
+
+    <h2>Employee List</h2>
+    
+    <table>
+        <tr>
+            <th>Name</th>
+            <td>{{ employee.name }}</td>
+        </tr>
+        <tr>
+            <th>Role</th>
+            <td>{{ employee.role }}</td>
+        </tr>
+        <tr>
+            <th>Email</th>
+            <td>{{ employee.email }}</td>
+        </tr>
+        <tr>
+            <th>Phone</th>
+            <td>{{ employee.phone_number }}</td>
+        </tr>
+        <tr>
+            <th>LinkedIn</th>
+            <td>{{ employee.linkedin }}</td>
+        </tr>
+        <tr>
+            <th>GitHub</th>
+            <td>{{ employee.github }}</td>
+        </tr>
+        <tr>
+            <th>Address</th>
+            <td>{{ employee.address }}</td>
+        </tr>
+        <tr>
+            <th>Objective</th>
+            <td>{{ employee.objective }}</td>
+        </tr>
+        <tr>
+            <th>Total Experience</th>
+            <td>{{ employee.total_experience }} Years</td>
+        </tr>
+        <tr>
+            <th>Profile</th>
+            <td>{{ employee.slug }}</td>
+        </tr>
+    </table>
+
+</body>
+</html>
