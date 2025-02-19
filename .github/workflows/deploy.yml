@@ -1,0 +1,46 @@
+name: Jenkins_with_Django
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Write SSH key to file
+        run: |
+          echo "${{ secrets.SECRATE_KEY }}" > private_key
+          chmod 600 private_key  # Set appropriate permissions
+
+      - name: Deploy to server
+        run: |
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ env.SERVER_IP }} << 'EOF'
+            cd ${{ env.PROJECT_PATH }}  # Navigate to your project directory
+            echo "Base Path: ${{ env.PROJECT_PATH }}"
+
+            git pull origin main # Pull the latest code
+          EOF
+
+      - name: Install dependencies and make migrations
+        run: |
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ env.SERVER_IP }} << 'EOF'
+            cd ${{ env.PROJECT_PATH }} 
+            source env/bin/activate
+            pip install -r requirements.txt
+            python manage.py makemigrations
+            python manage.py migrate
+          EOF
+
+      - name: Restart the Gunicorn service
+        run: |
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ env.SERVER_IP }} << 'EOF'
+            sudo systemctl restart jenkins_with_django_gunicorn.service
+          EOF
+
+      - name: Remove the private key file
+        run: rm -f private_key
