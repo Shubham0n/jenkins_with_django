@@ -1,0 +1,11 @@
+[Unit]
+Description=gunicorn socket
+
+[Socket]
+ListenStream=/home/ubuntu/Jenkins_with_Django/services/run/gunicorn.sock
+SocketUser=ubuntu
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

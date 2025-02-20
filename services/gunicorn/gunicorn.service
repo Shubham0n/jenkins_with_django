@@ -1,0 +1,19 @@
+[Unit]
+Description=gunicorn daemon
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/Jenkins_with_Django
+Environment="DJANGO_SETTINGS_MODULE=company.settings"
+
+ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/gunicorn \
+          --access-logfile /home/ubuntu/Jenkins_with_Django/services/gunicorn/access.log \
+          --error-logfile /home/ubuntu/Jenkins_with_Django/services/gunicorn/error.log \
+          --workers 3 \
+          --bind 127.0.0.1:8091 \
+          company.wsgi:application
+
+[Install]
+WantedBy=multi-user.target

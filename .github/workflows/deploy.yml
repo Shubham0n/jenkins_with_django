@@ -3,44 +3,211 @@ name: Jenkins_with_Django
 on:
   push:
     branches:
-      - main
+      - main  # Run the workflow when changes are pushed to the main branch
 
 jobs:
-  deploy:
+  run-django-tests:
+    name: Run Django Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Write SSH key to file
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"  # Using Python 3.11 for Django tests
+
+      - name: Create Virtual Environment
+        run: python -m venv env    # Create a virtual environment
+
+      - name: Install Dependencies
+        run: |
+          source env/bin/activate   # Activate virtual environment
+          pip install --upgrade pip
+          pip install -r requirements.txt   # Install project dependencies
+
+      - name: Run Django Tests
+        run: |
+          source env/bin/activate
+          python manage.py test   # Run Django tests
+
+  clone-repository:
+    name: Clone Repository
+    needs: run-django-tests   # Run only if tests pass successfully
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Write SSH Key to File
+        run: |
+          echo "${{ secrets.SECRATE_KEY }}" > private_key
+          chmod 600 private_key  # Set appropriate permissions
+      
+      - name: Clone or Pull Latest Code
+        run: |
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ vars.SERVER_IP }} << 'EOF'
+          echo "Connected to Server"
+
+            # Check if project directory exists, if not clone the repository
+            if [ ! -d "${{ vars.PROJECT_PATH }}" ]; then
+              echo "Cloning Repository..."
+              
+              # Create Project Directory
+              cd ${{ vars.PROJECT_CLONE_DIR }}
+
+              # Clone Repository
+              git clone ${{ vars.REPO_URL }}
+
+            else
+              echo "Repository Exists. Pulling Latest Changes..."
+              cd ${{ vars.PROJECT_PATH }}
+
+              # Ensure we are on the correct branch
+              git checkout ${{ vars.BRANCH }}
+              
+              # Discard all local changes and forcefully reset to remote
+              git fetch --all
+              git reset --hard origin/${{ vars.BRANCH }}  # Forcefully reset to remote
+              git clean -df  # Remove untracked files
+
+              # Force pull the latest changes
+              git pull --rebase
+            fi
+          EOF
+
+      - name: Cleanup SSH Key
+        if: always()
+        run: rm -f private_key   
+       
+  deploy-application:
+    name: Deploy Application
+    needs: clone-repository  # Run only if repository cloning is successful
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Write SSH Key to File
         run: |
           echo "${{ secrets.SECRATE_KEY }}" > private_key
           chmod 600 private_key  # Set appropriate permissions
 
-      - name: Deploy to server
+      - name: Connect and Deploy to Server
         run: |
-          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ env.SERVER_IP }} << 'EOF'
-            cd ${{ env.PROJECT_PATH }}  # Navigate to your project directory
-            echo "Base Path: ${{ env.PROJECT_PATH }}"
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ vars.SERVER_IP }} << 'EOF'
+            echo "Connected to Server"
 
-            git pull origin main # Pull the latest code
+            # Navigate to the project directory
+            cd ${{ vars.PROJECT_PATH }}
+            
+            # Set Permissions for Deployment Script
+            chmod +x run.sh
+            
+            # Run Deployment Script
+            echo "Executing Deployment Script..."
+            source run.sh
           EOF
 
-      - name: Install dependencies and make migrations
+      - name: Cleanup SSH Key
+        if: always()
+        run: rm -f private_key  
+
+  configure-services:
+    name: Configure Services
+    needs: deploy-application  # Run only after successful deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Write SSH Key to File
         run: |
-          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ env.SERVER_IP }} << 'EOF'
-            cd ${{ env.PROJECT_PATH }} 
-            source env/bin/activate
-            pip install -r requirements.txt
-            python manage.py makemigrations
-            python manage.py migrate
+          echo "${{ secrets.SECRATE_KEY }}" > private_key
+          chmod 600 private_key  # Set appropriate permissions
+      
+      - name: Add Gunicorn Service
+        run: |
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ vars.SERVER_IP }} << 'EOF'
+            echo "Connected to Server"
+            
+            # Give permissions to the project directory
+            sudo chown -R ubuntu:www-data /home/ubuntu/Jenkins_with_Django/
+            sudo chmod -R 770 /home/ubuntu/Jenkins_with_Django/
+
+
+            # Check if Gunicorn service files exist
+            if [ ! -f "${{ vars.PROJECT_PATH }}/services/gunicorn/gunicorn.service" ]; then
+              echo "ERROR: gunicorn.service file is missing!"
+              exit 1
+            fi
+
+            if [ ! -f "${{ vars.PROJECT_PATH }}/services/gunicorn/gunicorn.socket" ]; then
+              echo "ERROR: gunicorn.socket file is missing!"
+              exit 1
+            fi
+
+            # Copy Gunicorn service configuration files
+            sudo cp ${{ vars.PROJECT_PATH }}/services/gunicorn/gunicorn.service /etc/systemd/system/jenkins_with_django.service
+            sudo cp ${{ vars.PROJECT_PATH }}/services/gunicorn/gunicorn.socket /etc/systemd/system/jenkins_with_django.socket
+
+            # Allow the necessary port
+            sudo ufw allow 8091
+
+            # Reload systemd, restart services
+            sudo systemctl daemon-reload
+            sudo systemctl restart jenkins_with_django.socket jenkins_with_django.service
+            sudo systemctl enable jenkins_with_django.socket jenkins_with_django.service
+
+            # Debugging and status check commands
+
+            # Show the latest logs related to the Gunicorn socket
+            sudo systemctl status jenkins_with_django.socket --no-pager
+            sudo systemctl status jenkins_with_django.service --no-pager
+
+            # Verify if the Unix socket file exists
+            file /run/gunicorn.sock || echo "Gunicorn socket missing!"
+
+
+            # Check the status of the Gunicorn service
+            sudo systemctl status jenkins_with_django
+
+            # Test Gunicorn response via Unix socket
+            curl --unix-socket /run/jenkins_with_django.sock localhost:8091 || echo "Gunicorn test failed!"
+
           EOF
 
-      - name: Restart the Gunicorn service
+
+      - name: Configure and Restart Nginx Service
         run: |
-          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ env.SERVER_IP }} << 'EOF'
-            sudo systemctl restart jenkins_with_django_gunicorn.service
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ vars.SERVER_IP }} << 'EOF'
+            echo "Connected to Server"
+
+            # Ensure Nginx config file exists
+            if [ ! -f "${{ vars.PROJECT_PATH }}/services/nginx/nginx.conf" ]; then
+              echo "ERROR: nginx.conf file is missing!"
+              exit 1
+            fi
+
+            # Copy and link Nginx config (overwrite each time)
+            sudo cp ${{ vars.PROJECT_PATH }}/services/nginx/nginx.conf /etc/nginx/sites-available/jenkins_with_django.conf
+            sudo ln -sf /etc/nginx/sites-available/jenkins_with_django.conf /etc/nginx/sites-enabled/
+
+            # Test and restart Nginx
+            if sudo nginx -t; then
+                sudo systemctl restart nginx
+                sudo systemctl enable nginx
+            else
+                echo "ERROR: Nginx configuration test failed!"
+                exit 1
+            fi
+
+            # Display Nginx status
+            sudo systemctl status nginx --no-pager
+
           EOF
 
-      - name: Remove the private key file
+      - name: Cleanup SSH Key
+        if: always()
         run: rm -f private_key

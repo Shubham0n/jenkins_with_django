@@ -1,35 +1,32 @@
 #!/bin/bash
 
-set -e
+set -e  # Exit script on error
 
-# Detect OS and check if virtual environment exists
-if [[ -d "env" ]]; then
-    echo "Virtual environment found. Activating..."
-else
-    echo "Virtual environment not found. Creating one..."
-    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-        py -m venv env
-    elif [[ "$OSTYPE" == "darwin" || "$OSTYPE" == "linux-gnu" ]]; then
-        python3 -m venv env
-    else
-        echo "Unsupported OS"
-        exit 1
-    fi
-fi
+echo "Detected OS: $OSTYPE"
 
-
-# Activate virtual environment
+# Set Python and virtual environment activation paths
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    source ./env/Scripts/activate  # Windows (Git Bash)
-elif [[ "$OSTYPE" == "darwin" || "$OSTYPE" == "linux-gnu" ]]; then
-    source ./env/bin/activate  # macOS/Linux
+    PYTHON_EXEC="py"
+    VENV_PATH="env/Scripts/activate"
+    VENV_CREATE_CMD="py -m venv env"
 else
-    echo "Unsupported OS"
-    exit 1
+    PYTHON_EXEC="python3"
+    VENV_PATH="env/bin/activate"
+    VENV_CREATE_CMD="python3 -m venv env"
 fi
 
+# Create virtual environment if not exists
+if [[ ! -d "env" ]]; then
+    echo "Virtual environment not found. Creating one..."
+    $VENV_CREATE_CMD || { echo "Failed to create virtual environment"; exit 1; }
+else
+    echo "Virtual environment found. Activating..."
+fi
 
-# Verify if the virtual environment is activated
+# Activate the virtual environment
+source $VENV_PATH
+
+# Check if the virtual environment is activated
 if [[ -z "$VIRTUAL_ENV" ]]; then
     echo "Failed to activate virtual environment."
     exit 1
@@ -37,29 +34,18 @@ fi
 
 echo "Virtual environment activated successfully!"
 
-
-# Install dependencies
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
+# Upgrade pip and install dependencies
+if [[ -f "requirements.txt" ]]; then
+    echo "Installing dependencies..."
+    $PYTHON_EXEC -m pip install --upgrade pip
+    $PYTHON_EXEC -m pip install -r requirements.txt
 else
     echo "requirements.txt not found. Skipping installation."
 fi
 
-
-# Git Bash on Windowss
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    py manage.py makemigrations
-    py manage.py migrate
-    py manage.py collectstatic --noinput
-    py manage.py runserver
-
-# macOS/Linux
-elif [[ "$OSTYPE" == "darwin" || "$OSTYPE" == "linux-gnu" ]]; then
-    python3 manage.py makemigrations
-    python3 manage.py migrate
-    python3 manage.py collectstatic --noinput
-    python3 manage.py runserver
-else
-    echo "Unsupported OS"
-    exit 1
-fi
+# Run Django commands
+echo "Running Django migrations and server..."
+$PYTHON_EXEC manage.py makemigrations || { echo "makemigrations failed"; exit 1; }
+$PYTHON_EXEC manage.py migrate || { echo "migrate failed"; exit 1; }
+$PYTHON_EXEC manage.py collectstatic --noinput || { echo "collectstatic failed"; exit 1; }
+# $PYTHON_EXEC manage.py runserver
