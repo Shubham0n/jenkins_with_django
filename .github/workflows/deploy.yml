@@ -72,7 +72,7 @@ jobs:
               git reset --hard origin/${{ vars.BRANCH }}  # Forcefully reset to remote
               git clean -df  # Remove untracked files
 
-              # Force pull the latest changes
+              # Ensure your branch is up to date
               git pull --rebase
             fi
           EOF
