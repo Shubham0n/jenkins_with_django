@@ -69,8 +69,8 @@ jobs:
               
               # Discard all local changes and forcefully reset to remote
               git fetch --all
-              git reset --hard origin/${{ vars.BRANCH }}  # Forcefully reset to remote
               git clean -df  # Remove untracked files
+              git reset --hard origin/${{ vars.BRANCH }}  # Forcefully reset to remote
 
               # Ensure your branch is up to date
               git pull --rebase
