@@ -48,4 +48,5 @@ echo "Running Django migrations and server..."
 $PYTHON_EXEC manage.py makemigrations || { echo "makemigrations failed"; exit 1; }
 $PYTHON_EXEC manage.py migrate || { echo "migrate failed"; exit 1; }
 $PYTHON_EXEC manage.py collectstatic --noinput || { echo "collectstatic failed"; exit 1; }
+$PYTHON_EXEC manage.py add_user --email "dev_classdekho@gmail.com" --password "admin" --is_superuser "true" --is_staff "true" --is_active "true"
 # $PYTHON_EXEC manage.py runserver
