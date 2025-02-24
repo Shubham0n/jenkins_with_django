@@ -5,14 +5,16 @@ Requires=redis.service
 
 [Service]
 Type=simple
-User=your_user
-Group=your_user
+User=ubuntu
+Group=www-data
 WorkingDirectory=/home/ubuntu/Jenkins_with_Django
-Environment="PATH=/home/your_username/Jenkins_with_Django/env/bin"
+Environment="PATH=/home/ubuntu/Jenkins_with_Django/env/bin"
 ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company beat --loglevel=info \
         --logfile=/home/ubuntu/Jenkins_with_Django/services/celery/celerybeat.log
 Restart=always
 RestartSec=10s
+StandardOutput=append:/home/ubuntu/Jenkins_with_Django/services/celery/celerybeat.log
+StandardError=append:/home/ubuntu/Jenkins_with_Django/services/celery/celerybeat.log
 
 [Install]
 WantedBy=multi-user.target

@@ -4,16 +4,18 @@ After=network.target
 Requires=redis.service
 
 [Service]
-Type=forking
+Type=simple
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/Jenkins_with_Django
-Environment="PATH=/home/your_username/Jenkins_with_Django/env/bin"
-ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company worker --loglevel=info --detach \
-          --logfile=/home/ubuntu/Jenkins_with_Django/services/celery/celery.log
-ExecStop=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company worker --loglevel=info --detach --stop
+Environment="PATH=/home/ubuntu/Jenkins_with_Django/env/bin"
+ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company worker --loglevel=info \
+        --logfile=/home/ubuntu/Jenkins_with_Django/services/celery/celery.log
+ExecStop=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company control shutdown
 Restart=always
 RestartSec=10s
+StandardOutput=append:/home/ubuntu/Jenkins_with_Django/services/celery/celery.log
+StandardError=append:/home/ubuntu/Jenkins_with_Django/services/celery/celery.log
 
 [Install]
 WantedBy=multi-user.target

@@ -231,6 +231,10 @@ jobs:
             sudo systemctl restart jenkins_with_django_celery.service
             sudo systemctl restart jenkins_with_django_celerybeat.service
 
+            # 📊 Display Celery status
+            sudo systemctl status jenkins_with_django_celery.service --no-pager
+            sudo systemctl status jenkins_with_django_celerybeat.service --no-pager
+
             # Display Celery service logs
             sudo journalctl -u jenkins_with_django_celery.service --no-pager --lines=50
             sudo journalctl -u jenkins_with_django_celerybeat.service --no-pager --lines=50
