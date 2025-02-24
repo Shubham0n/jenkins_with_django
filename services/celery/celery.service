@@ -1,14 +1,16 @@
 [Unit]
 Description=Celery Service
 After=network.target
+Requires=redis.service
 
 [Service]
 Type=forking
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/Jenkins_with_Django
-ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A classdekho worker --loglevel=info
+ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company worker --loglevel=info
 Restart=always
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target

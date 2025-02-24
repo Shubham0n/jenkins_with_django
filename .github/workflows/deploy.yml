@@ -211,21 +211,29 @@ jobs:
           ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ vars.SERVER_IP }} << 'EOF'
             echo "🖥 Connected to Server"
 
-            # 🔍 Ensure Celery service file exists
+            # 🔍 Ensure Celery service files exists
             if [ ! -f "${{ vars.PROJECT_PATH }}/services/celery/celery.service" ]; then
               echo "❌ ERROR: celery.service file is missing!"
               exit 1
             fi
 
+            if [ ! -f "${{ vars.PROJECT_PATH }}/services/celery/celerybeat.service" ]; then
+              echo "❌ ERROR: celerybeat.service file is missing!"
+              exit 1
+            fi
+
             # 📂 Copy and link Celery service (overwrite each time)
             sudo cp ${{ vars.PROJECT_PATH }}/services/celery/celery.service /etc/systemd/system/jenkins_with_django_celery.service
+            sudo cp ${{ vars.PROJECT_PATH }}/services/celery/celerybeat.service /etc/systemd/system/jenkins_with_django_celerybeat.service
 
-            # 🔄 Reload systemd, restart services
+            # 🔄 Reload systemd, restart Celery services
             sudo systemctl daemon-reload
             sudo systemctl restart jenkins_with_django_celery.service
+            sudo systemctl restart jenkins_with_django_celerybeat.service
 
-            # Display Nginx status
+            # Display Celery service logs
             sudo journalctl -u jenkins_with_django_celery.service --no-pager --lines=50
+            sudo journalctl -u jenkins_with_django_celerybeat.service --no-pager --lines=50
 
           EOF
 

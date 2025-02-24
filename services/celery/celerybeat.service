@@ -1,0 +1,16 @@
+[Unit]
+Description=Celery Beat Service
+After=network.target redis.service
+Requires=redis.service
+
+[Service]
+Type=simple
+User=your_user
+Group=your_user
+WorkingDirectory=/home/ubuntu/Jenkins_with_Django
+ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company beat --loglevel=info
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
