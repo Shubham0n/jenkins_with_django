@@ -206,10 +206,6 @@ jobs:
 
           EOF
 
-      - name: 🗑 Cleanup SSH Key
-        if: always()
-        run: rm -f private_key  
-
       - name: ⚙️ Configure and Restart Celery Service
         run: |
           ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ vars.SERVER_IP }} << 'EOF'
