@@ -8,6 +8,7 @@ Type=simple
 User=your_user
 Group=your_user
 WorkingDirectory=/home/ubuntu/Jenkins_with_Django
+Environment="PATH=/home/your_username/Jenkins_with_Django/env/bin"
 ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company beat --loglevel=info \
         --logfile=/home/ubuntu/Jenkins_with_Django/services/celery/celerybeat.log
 Restart=always
