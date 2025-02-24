@@ -211,3 +211,31 @@ jobs:
       - name: Cleanup SSH Key
         if: always()
         run: rm -f private_key
+
+
+      - name: Configure and Restart Celery Service
+        run: |
+          ssh -i private_key -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ vars.SERVER_IP }} << 'EOF'
+            echo "Connected to Server"
+
+            # Ensure Celery service file exists
+            if [ ! -f "${{ vars.PROJECT_PATH }}/services/celery/celery.service" ]; then
+              echo "ERROR: celery.service file is missing!"
+              exit 1
+            fi
+
+            # Copy and link Celery service (overwrite each time)
+            sudo cp ${{ vars.PROJECT_PATH }}/services/celery/celery.service /etc/systemd/system/jenkins_with_django_celery.service
+
+            # Reload systemd, restart services
+            sudo systemctl daemon-reload
+            sudo systemctl restart jenkins_with_django_celery.service
+
+            # Display Nginx status
+            sudo journalctl -u jenkins_with_django_celery.service --no-pager --lines=50
+
+          EOF
+
+      - name: Cleanup SSH Key
+        if: always()
+        run: rm -f private_key
