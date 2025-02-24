@@ -226,6 +226,15 @@ jobs:
             sudo cp ${{ vars.PROJECT_PATH }}/services/celery/celery.service /etc/systemd/system/jenkins_with_django_celery.service
             sudo cp ${{ vars.PROJECT_PATH }}/services/celery/celerybeat.service /etc/systemd/system/jenkins_with_django_celerybeat.service
 
+            # 🔥 Allow the necessary permission
+            sudo touch /home/ubuntu/Jenkins_with_Django/services/celery/celery.log
+            sudo chown ubuntu:ubuntu /home/ubuntu/Jenkins_with_Django/services/celery/celery.log
+            sudo chmod 664 /home/ubuntu/Jenkins_with_Django/services/celery/celery.log
+            
+            sudo touch /home/ubuntu/Jenkins_with_Django/services/celery/celerybeat.log
+            sudo chown ubuntu:ubuntu /home/ubuntu/Jenkins_with_Django/services/celery/celerybeat.log
+            sudo chmod 664 /home/ubuntu/Jenkins_with_Django/services/celery/celerybeat.log
+
             # 🔄 Reload systemd, restart Celery services
             sudo systemctl daemon-reload
             sudo systemctl restart jenkins_with_django_celery.service
