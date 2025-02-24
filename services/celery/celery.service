@@ -8,7 +8,9 @@ Type=forking
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/Jenkins_with_Django
-ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company worker --loglevel=info
+ExecStart=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company worker --loglevel=info --detach \
+          --logfile=/home/ubuntu/Jenkins_with_Django/services/celery/celery.log
+ExecStop=/home/ubuntu/Jenkins_with_Django/env/bin/celery -A company worker --loglevel=info --detach --stop
 Restart=always
 RestartSec=10s
 
